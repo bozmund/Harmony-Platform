@@ -24,12 +24,14 @@ if [ ! -e "$environment_file" ]; then
   MINIO_ROOT_USER="${MINIO_ROOT_USER:-harmony}"
   MINIO_ROOT_PASSWORD="${MINIO_ROOT_PASSWORD:-$(openssl rand -hex 32)}"
   RABBITMQ_PASSWORD="${RABBITMQ_PASSWORD:-$(openssl rand -hex 32)}"
+  DOWNLOADER_RABBITMQ_PASSWORD="$(openssl rand -hex 32)"
   IDENTITY_HMAC_KEY="${IDENTITY_HMAC_KEY:-$(openssl rand -hex 32)}"
   cat >"$environment_file" <<EOF
 POSTGRES_PASSWORD=$POSTGRES_PASSWORD
 MINIO_ROOT_USER=$MINIO_ROOT_USER
 MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD
 RABBITMQ_PASSWORD=$RABBITMQ_PASSWORD
+DOWNLOADER_RABBITMQ_PASSWORD=$DOWNLOADER_RABBITMQ_PASSWORD
 IDENTITY_HMAC_KEY=$IDENTITY_HMAC_KEY
 CLOUD_IDENTITY_HMAC_KEY=$(openssl rand -hex 32)
 AUTH0_DOMAIN=
@@ -38,6 +40,10 @@ CLOUD_AUTH0_CLIENT_SECRET=
 GRAFANA_ADMIN_PASSWORD=$(openssl rand -hex 24)
 DUCKDNS_TOKEN=
 EOF
+fi
+
+if ! grep -q '^DOWNLOADER_RABBITMQ_PASSWORD=' "$environment_file"; then
+  printf 'DOWNLOADER_RABBITMQ_PASSWORD=%s\n' "$(openssl rand -hex 32)" >>"$environment_file"
 fi
 
 if [ ! -s "$certificate_directory/tls.crt" ] || [ ! -s "$certificate_directory/tls.key" ]; then
@@ -64,3 +70,4 @@ visudo -cf /etc/sudoers.d/harmony-platform-deploy
 
 openssl x509 -in "$certificate_directory/tls.crt" -noout -fingerprint -sha256
 echo "Edit $environment_file once, then GitHub Actions owns deployments."
+echo "After the first successful deploy, run scripts/show-downloader-config.sh as root."

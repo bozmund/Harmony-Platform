@@ -50,6 +50,19 @@ fi
 docker compose --env-file "$environment_file" -f compose.prod.yaml pull
 docker compose --env-file "$environment_file" -f compose.prod.yaml up -d --remove-orphans
 
+: "${DOWNLOADER_RABBITMQ_PASSWORD:?DOWNLOADER_RABBITMQ_PASSWORD is required}"
+if docker compose --env-file "$environment_file" -f compose.prod.yaml exec -T rabbitmq \
+    rabbitmqctl -q list_users | awk '{print $1}' | grep -qx downloader; then
+  docker compose --env-file "$environment_file" -f compose.prod.yaml exec -T rabbitmq \
+    rabbitmqctl change_password downloader "$DOWNLOADER_RABBITMQ_PASSWORD"
+else
+  docker compose --env-file "$environment_file" -f compose.prod.yaml exec -T rabbitmq \
+    rabbitmqctl add_user downloader "$DOWNLOADER_RABBITMQ_PASSWORD"
+fi
+docker compose --env-file "$environment_file" -f compose.prod.yaml exec -T rabbitmq \
+  rabbitmqctl set_permissions -p / downloader \
+  '^harmony\.ingest\.jobs$' '^$' '^harmony\.ingest\.jobs$'
+
 if ! curl --fail --silent --show-error --retry 20 --retry-delay 3 \
     https://harmony-resolver.duckdns.org/health/ready >/dev/null \
   || ! curl --fail --silent --show-error --retry 20 --retry-delay 3 \

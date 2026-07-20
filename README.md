@@ -23,3 +23,11 @@ image rollback are performed by GitHub Actions.
 
 Required `production` Environment secrets are `VPS_HOST`, `VPS_SSH_KEY`, `VPS_IPV4` and
 `DUCKDNS_TOKEN`. Resolver and Cloud repositories additionally need `PLATFORM_DISPATCH_TOKEN`.
+
+Each deployment creates or rotates a non-administrator RabbitMQ `downloader` user with access only
+to `harmony.ingest.jobs`. After the first successful deployment, obtain its local downloader
+settings without opening the root-owned environment file:
+
+```bash
+sudo bash /opt/harmony-platform/scripts/show-downloader-config.sh
+```
