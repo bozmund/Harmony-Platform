@@ -49,6 +49,8 @@ fi
 
 docker compose --env-file "$environment_file" -f compose.prod.yaml pull
 docker compose --env-file "$environment_file" -f compose.prod.yaml up -d --remove-orphans
+docker compose --env-file "$environment_file" -f compose.prod.yaml \
+  up -d --no-deps --force-recreate nginx
 
 : "${DOWNLOADER_RABBITMQ_PASSWORD:?DOWNLOADER_RABBITMQ_PASSWORD is required}"
 if docker compose --env-file "$environment_file" -f compose.prod.yaml exec -T rabbitmq \
