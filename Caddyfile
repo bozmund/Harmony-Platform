@@ -1,17 +1,31 @@
+{
+	servers :443 {
+		protocols h1 h2
+	}
+}
+
 harmony-resolver.duckdns.org {
-    encode zstd gzip
+	encode zstd gzip
 
-    handle_path /resolver/* {
-        reverse_proxy nginx:80
-    }
+	@resolverAudio path /resolver/v1/tracks/*/audio
+	handle @resolverAudio {
+		uri strip_prefix /resolver
+		reverse_proxy nginx:80 {
+			flush_interval 10ms
+		}
+	}
 
-    handle /cloud/* {
-        reverse_proxy cloud-api:8080
-    }
+	handle_path /resolver/* {
+		reverse_proxy nginx:80
+	}
 
-    handle /health/* {
-        reverse_proxy nginx:80
-    }
+	handle /cloud/* {
+		reverse_proxy cloud-api:8080
+	}
 
-    respond 404
+	handle /health/* {
+		reverse_proxy nginx:80
+	}
+
+	respond 404
 }
