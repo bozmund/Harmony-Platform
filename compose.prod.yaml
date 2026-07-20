@@ -89,6 +89,11 @@ services:
       ObjectStorage__SecretKey: "${MINIO_ROOT_PASSWORD:?}"
       ObjectStorage__Bucket: harmony-audio
       Quotas__IdentityHmacKey: "${IDENTITY_HMAC_KEY:?}"
+      # These limits count only cache-miss ingestions, not ordinary API requests or cached playback.
+      Quotas__AnonymousIngestionsPerHour: "100"
+      Quotas__AuthenticatedIngestionsPerHour: "1000"
+      Quotas__AnonymousConcurrentResponses: "4"
+      Quotas__AuthenticatedConcurrentResponses: "10"
       Auth0__Domain: "${AUTH0_DOMAIN:?}"
       Auth0__Audience: https://harmony-resolver
       Resolver__ExtractionMode: Delegated
@@ -160,10 +165,27 @@ services:
 
   prometheus:
     image: prom/prometheus:v3.4.0
-    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=15d"]
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=15d", "--web.enable-lifecycle"]
     volumes:
       - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus:/prometheus
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+    command: ["--path.rootfs=/host"]
+    volumes: ["/:/host:ro,rslave"]
+    restart: unless-stopped
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.52.1
+    privileged: true
+    devices: ["/dev/kmsg"]
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
     restart: unless-stopped
 
   loki:
@@ -187,10 +209,13 @@ services:
     image: grafana/grafana:12.0.0
     environment:
       GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:?}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?}"
     volumes:
       - grafana:/var/lib/grafana
       - ./observability/grafana-datasources.yml:/etc/grafana/provisioning/datasources/harmony.yml:ro
-    depends_on: [prometheus, loki]
+      - ./observability/grafana-dashboards.yml:/etc/grafana/provisioning/dashboards/harmony.yml:ro
+      - ./observability/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on: [prometheus, loki, postgres]
     restart: unless-stopped
 
 volumes:
