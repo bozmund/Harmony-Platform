@@ -43,10 +43,6 @@ jobs:
           envs: RESOLVER_IMAGE,CLOUD_IMAGE
           script: |
             set -euo pipefail
-            if [ ! -d /opt/harmony-platform/.git ]; then
-              git clone --depth 1 https://github.com/bozmund/Harmony-Platform.git /opt/harmony-platform
-            fi
-            cd /opt/harmony-platform
-            git pull --ff-only
-            sudo --preserve-env=RESOLVER_IMAGE,CLOUD_IMAGE \
-              bash /opt/harmony-platform/scripts/deploy.sh
+            test -x /usr/local/sbin/harmony-platform-deploy
+            sudo /usr/local/sbin/harmony-platform-deploy \
+              "$RESOLVER_IMAGE" "$CLOUD_IMAGE"
