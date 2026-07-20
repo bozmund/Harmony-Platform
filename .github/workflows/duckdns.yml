@@ -1,0 +1,22 @@
+name: update duckdns
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "17 */6 * * *"
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Update harmony-resolver address
+        env:
+          DUCKDNS_TOKEN: ${{ secrets.DUCKDNS_TOKEN }}
+          VPS_IPV4: ${{ secrets.VPS_IPV4 }}
+        run: |
+          set -euo pipefail
+          result="$(curl --fail --silent --show-error --get \
+            --data-urlencode domains=harmony-resolver \
+            --data-urlencode token="$DUCKDNS_TOKEN" \
+            --data-urlencode ip="$VPS_IPV4" \
+            https://www.duckdns.org/update)"
+          test "$result" = "OK"

@@ -1,0 +1,6 @@
+global: { scrape_interval: 15s }
+scrape_configs:
+  - job_name: harmony-resolver
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["resolver-api-1:8080", "resolver-api-2:8080"]
