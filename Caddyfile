@@ -23,6 +23,11 @@ harmony-resolver.duckdns.org {
 		reverse_proxy cloud-api:8080
 	}
 
+	@mcp path /mcp /mcp/*
+	handle @mcp {
+		reverse_proxy nginx:80
+	}
+
 	handle /health/* {
 		reverse_proxy nginx:80
 	}
