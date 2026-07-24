@@ -115,6 +115,7 @@ services:
 
   cloud-migrate:
     image: "${CLOUD_IMAGE:-ghcr.io/bozmund/harmony-cloud-api:latest}"
+    command: ["migrate"]
     environment:
       RUN_MIGRATIONS: "true"
       Cloud__IdentityHmacKey: "${CLOUD_IDENTITY_HMAC_KEY:?}"
