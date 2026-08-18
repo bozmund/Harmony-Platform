@@ -8,6 +8,20 @@ backup_directory="${HARMONY_BACKUP_DIR:-/var/backups/harmony-platform}"
 test -r "$environment_file"
 mkdir -p "$backup_directory"
 
+# Reasserts CI/CD-sourced config into the persistent, root-owned env file, so
+# a value set once as a GitHub Actions secret never needs a manual edit here
+# again. Empty means "not supplied this run" — leave whatever is on disk.
+set_persistent_value() {
+  local key="$1" value="$2"
+  test -n "$value" || return 0
+  if grep -q "^$key=" "$environment_file"; then
+    sed -i "s|^$key=.*|$key=$value|" "$environment_file"
+  else
+    printf '%s=%s\n' "$key" "$value" >>"$environment_file"
+  fi
+}
+set_persistent_value ADMIN_AUTH0_CLIENT_ID "${ADMIN_AUTH0_CLIENT_ID:-}"
+
 cd "$workspace"
 set -a
 # shellcheck disable=SC1090

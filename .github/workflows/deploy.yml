@@ -38,13 +38,21 @@ jobs:
         env:
           RESOLVER_IMAGE: ${{ inputs.resolver_image || github.event.client_payload.resolver_image || 'ghcr.io/bozmund/harmony-resolver-api:latest' }}
           CLOUD_IMAGE: ${{ inputs.cloud_image || github.event.client_payload.cloud_image || 'ghcr.io/bozmund/harmony-cloud-api:latest' }}
+          # Reasserted into the server's persistent env file on every deploy, so
+          # setting this secret once means never touching the box by hand again.
+          # Leave the repo secret unset to keep whatever is already on disk.
+          ADMIN_AUTH0_CLIENT_ID: ${{ secrets.ADMIN_AUTH0_CLIENT_ID }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: deploy
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: RESOLVER_IMAGE,CLOUD_IMAGE
+          envs: RESOLVER_IMAGE,CLOUD_IMAGE,ADMIN_AUTH0_CLIENT_ID
           script: |
             set -euo pipefail
             test -x /usr/local/sbin/harmony-platform-deploy
+            # ":-" matters: the remote shell runs with `set -u`, and the action
+            # does not export an env var whose value is empty. An unconfigured
+            # ADMIN_AUTH0_CLIENT_ID secret would otherwise abort the deploy on
+            # an unbound variable rather than harmlessly passing "".
             sudo /usr/local/sbin/harmony-platform-deploy \
-              "$RESOLVER_IMAGE" "$CLOUD_IMAGE"
+              "$RESOLVER_IMAGE" "$CLOUD_IMAGE" "${ADMIN_AUTH0_CLIENT_ID:-}"
