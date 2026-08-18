@@ -50,5 +50,9 @@ jobs:
           script: |
             set -euo pipefail
             test -x /usr/local/sbin/harmony-platform-deploy
+            # ":-" matters: the remote shell runs with `set -u`, and the action
+            # does not export an env var whose value is empty. An unconfigured
+            # ADMIN_AUTH0_CLIENT_ID secret would otherwise abort the deploy on
+            # an unbound variable rather than harmlessly passing "".
             sudo /usr/local/sbin/harmony-platform-deploy \
-              "$RESOLVER_IMAGE" "$CLOUD_IMAGE" "$ADMIN_AUTH0_CLIENT_ID"
+              "$RESOLVER_IMAGE" "$CLOUD_IMAGE" "${ADMIN_AUTH0_CLIENT_ID:-}"

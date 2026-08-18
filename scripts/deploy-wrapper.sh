@@ -9,8 +9,14 @@ cloud_image="${2:-}"
 # Omit (empty string) to leave whatever is already on disk untouched.
 admin_auth0_client_id="${3:-}"
 
-if [ "$#" -ne 3 ]; then
-  echo "Expected the two immutable Harmony image references plus an admin console Auth0 client id (may be empty)." >&2
+# Two args or three. Three is the current contract; two is accepted so this
+# script can be installed on the server *before* the workflow that passes the
+# third argument is merged. Demanding exactly three would break every deploy
+# in the window between installing this file and merging that workflow — and
+# demanding exactly two (the previous contract) breaks the opposite ordering.
+# Accepting both means the rollout has no broken window in either direction.
+if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
+  echo "Expected the two immutable Harmony image references, optionally followed by an admin console Auth0 client id." >&2
   exit 1
 fi
 if [[ ! "$resolver_image" =~ ^ghcr\.io/bozmund/harmony-resolver-api:(latest|sha-[0-9a-f]{40})$ ]]; then
