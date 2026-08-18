@@ -79,6 +79,9 @@ services:
 
   resolver-api-1: &resolver-api
     image: "${RESOLVER_IMAGE:-ghcr.io/bozmund/harmony-resolver-api:latest}"
+    # The administrator console is intentionally reachable only over SSH:
+    # `ssh -L 8081:127.0.0.1:8081 …`, then browse localhost:8081/admin/retries.
+    ports: ["127.0.0.1:8081:8080"]
     environment: &resolver-environment
       ASPNETCORE_URLS: http://+:8080
       ASPNETCORE_ENVIRONMENT: Production
@@ -96,6 +99,10 @@ services:
       Quotas__AuthenticatedConcurrentResponses: "10"
       Auth0__Domain: "${AUTH0_DOMAIN:?}"
       Auth0__Audience: https://harmony-resolver
+      # Public SPA client id for the loopback-only Resolver administrator console.
+      # Leaving it empty keeps the page unavailable until the Auth0 client is provisioned.
+      AdminConsole__Auth0ClientId: "${ADMIN_AUTH0_CLIENT_ID:-}"
+      AdminConsole__Auth0Audience: https://harmony-resolver
       Resolver__ExtractionMode: Delegated
       Resolver__MaxDurationMinutes: "9"
       Resolver__MaxMediaGiB: "50"
@@ -111,6 +118,8 @@ services:
 
   resolver-api-2:
     <<: *resolver-api
+    # Do not inherit api-1's host binding: only one replica is reachable through SSH.
+    ports: []
     environment: *resolver-environment
 
   cloud-migrate:
