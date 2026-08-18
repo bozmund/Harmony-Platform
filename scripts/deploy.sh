@@ -63,8 +63,20 @@ fi
 
 docker compose --env-file "$environment_file" -f compose.prod.yaml pull
 docker compose --env-file "$environment_file" -f compose.prod.yaml up -d --remove-orphans
+# Both proxies mount their config from the repo by bind mount, and `up -d`
+# alone will not restart them: editing Caddyfile or the nginx config changes
+# no container-level setting, so Compose sees nothing to do. Worse, `git pull`
+# replaces those files atomically — the new file is a new inode, while the
+# running container's bind mount still resolves to the old one. A `caddy
+# reload` does not help either; it re-reads the same stale inode.
+#
+# This is not hypothetical: the /mcp route sat unrouted for four weeks and
+# every deploy in that window happily reported success while Caddy served a
+# config from before the route existed. Recreating both on every deploy is
+# cheap (a second of proxy downtime) and is the only thing that reliably
+# picks up a config edit.
 docker compose --env-file "$environment_file" -f compose.prod.yaml \
-  up -d --no-deps --force-recreate nginx
+  up -d --no-deps --force-recreate nginx caddy
 
 : "${DOWNLOADER_RABBITMQ_PASSWORD:?DOWNLOADER_RABBITMQ_PASSWORD is required}"
 if docker compose --env-file "$environment_file" -f compose.prod.yaml exec -T rabbitmq \
